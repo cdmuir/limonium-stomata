@@ -1,0 +1,33 @@
+---
+title: ''
+output:
+  pdf_document: default
+header-includes:
+- \usepackage{caption}
+- \captionsetup[figure]{labelformat=empty}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.lp = '')
+source("header.R")
+```
+
+[WILL FINISH FIGURE 1 SOON. THIS IS CONCEPTUAL FIGURE OF HYPOTHESES AND PREDICTIONS]
+
+---
+
+```{r fig2, echo = FALSE, fig.width = 6.5, fig.height = 6.175, align = 'c', fig.cap = "**Figure 2** Stomatal anatomy determines the maximum conductance to CO$_2$ and water vapor ($g_\\textrm{smsax}$). Both stomatal density (Panel B) and size (Panel C, calculated from pore length, SP, see Materials and Methods) strongly influence $g_\\textrm{smsax}$ in both Control (black circles) and Drought (white circles) treatments. Because $g_\\textrm{smsax}$ was calculated from stomatal density and size (see Materials and Methods), it is not german to include statistical tests of association. There was no significant correlation between density and size among species in either treatment (Panel A). Points represent the mean value per species and bars represent the standard errors."}
+knitr::include_graphics("fig2.pdf")
+```
+
+```{r fig3, echo = FALSE, fig.width = 3.25, fig.height = 6.5, align = 'c', fig.cap = "**Figure 3** Greater anatomical stomatal conductance ($g_\\textrm{smsax}$) is associated with A) greater Rubisco carboxylase activity ($k^\\textrm{cat}_\\textrm{c}$) but B) marginally significant reduced CO$_2$ specificity ($S_\\textrm{c/o}$). Since there was no effect of drought treatment on stomatal anatomy (see Results), we tested one $g_\\textrm{smsax}$ per species. Solid lines represent the median relationship between traits and gray polygons are the 95% highest posterior density (HPD) interval from the posterior distribution. Points represent the mean value per species and bars represent the standard errors."}
+knitr::include_graphics("fig3.pdf")
+```
+
+```{r fig4, echo = FALSE, fig.width = 6.5, fig.height = 6.175, align = 'c', fig.cap = "**Figure 4** Anatomical maximum stomatal conductance ($g_\\textrm{smsax}$) predicts operational stomatal conductance ($g_\\textrm{s}$) under both drought (white circles, dashed line) and control (black circles, solid line) treatments. anatomy determines the maximum conductance to CO$_2$ and water vapor ($g_\\textrm{smsax}$). As expected, species have lower stomatal conductance under the drought treatment, but the slope was not significantly different between treatments. Each point represents an individual plant from one of the 10 *Limonium* species. Gray polygons are the 95% highest posterior density (HPD) interval from the posterior distribution."}
+knitr::include_graphics("fig4.pdf")
+```
+
+```{r fig5, echo = FALSE, fig.width = 3.25, fig.height = 6.5, align = 'c', fig.cap = "**Figure 5** Larger leaves (greater leaf area) are A) associated with greater stomatal density but B) were not correlated with stomatal pore length in both drought (white points) and control (black points) treatments. Solid lines represent the median relationship between traits and gray polygons are the 95% highest posterior density (HPD) interval from the posterior distribution. Points represent the mean value per species and bars represent the standard errors."}
+knitr::include_graphics("fig5.pdf")
+```

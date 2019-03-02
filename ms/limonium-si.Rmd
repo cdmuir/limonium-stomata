@@ -1,0 +1,287 @@
+---
+title: "Supporting Information"
+output:
+  word_document:
+    reference_docx: template.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "/Volumes/GoogleDrive/My Drive/research/01_active/limonium")
+# knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file(path = ".."))
+
+```
+
+```{r source, echo = FALSE, message = FALSE}
+
+source("r/header.R")
+
+lags <- read_csv("data/limonium-lags.csv")
+rubisco <- read_excel("data/limonium-kinetics.xlsx")
+stomata <- read_csv("data/limonium-stomata.csv") %>%
+  group_by(spp, treatment, rep) %>%
+  summarize(
+    sd = sd[surface == "aB"] + sd[surface == "aD"],
+    sp = (sp[surface == "aB"] + sp[surface == "aD"]) / 2
+  ) %>%
+  ungroup()
+
+m1 <- read_rds("objects/m1.rds")
+
+mS1a_tab <- read_rds("objects/mS1a_tab.rds")
+mS1b_tab <- read_rds("objects/mS1b_tab.rds")
+m1_tab <- read_rds("objects/m1_tab.rds")
+m2_tab <- read_rds("objects/m2_tab.rds")
+m3_tab <- read_rds("objects/m3_tab.rds")
+
+```
+
+**S1.1: Abaxial and adaxial stomatal anatomy**
+
+In the primary analysis, we summed abaxial and adaxial stomatal density to get total stomatal density and averaged abaxial and adaxial stomatal pore length to get an average for the leaf. To examine differences in stomatal density and/or size between surfaces and across treatments, we used a multilevel Bayesian model in the R package brms (see *Materials and Methods*), treating abaxial and adaxial stomatal traits as correlated multivariate Gaussian response variables affected by treatment (WW and WD) as fixed effect, treatment-by-species and species as random effects. Separate models were fit for density and pore length, and both were log-transformed for noramlity prior to analysis. Fitting procedures followed that described in the *Materials and Methods*. 
+
+The stomatal density on each surface was approximately equal in all species (Figure S1A) and there was no effect of treatment on either ab- or adaxial stomatal density (Table S1). There was a significant within-species correlation between ab- and adaxial stomatal density, but not between species (Table S1).
+
+The adaxial stomatal pore length was consistenly shorter than that of the abaxial pore length (Figure S1B) but there was no effect of treatment on either ab- or adaxial stomatal pore length (Table S2). There was a significant within-species correlation between ab- and adaxial stomatal pore length, but not between species (Table S2).
+
+---
+
+```{r figS1, echo = FALSE, align = 'c', fig.width = 6.5, fig.cap = "**Figure S1** Stomatal density (Panel A) pore length (Panel B) on abaxial ($x$-axes) and adaxial ($y$-axes) leaf surfaces across *Limonium* species. Each point is the model-estimated average trait value for each of 10 species in well-watered control (WW; black circles) and severe water-deficit (WD; white circles) treatments. Bars are +/- one standard error. The gray, dashed line is the 1:1 line for reference. Stomatal densities are similar on each surface (Panel A), but adaxial stomata are generally smaller than abaxial (Panel B)."}
+knitr::include_graphics("../figures/figS1.pdf")
+```
+
+---
+
+```{r table-s1, echo = FALSE, eval = TRUE}
+
+mS1a_tab %>%
+  mutate(Parameter = case_when(
+    term == "b_logaB_Intercept" ~ "**Ab**axial SD Intercept",
+    term == "b_logaD_Intercept" ~ "**Ad**axial SD Intercept",
+    term == "b_logaB_treatmentWD" ~ "Effect of WD on log(**Ab**axial SD)",
+    term == "b_logaD_treatmentWD" ~ "Effect of WD on log(**Ad**axial SD)",
+    term == "cor_spp__logaB_Intercept__logaD_Intercept" ~
+      "Ab-ad correlation (among species)",
+    term == "rescor__logaB__logaD" ~
+      "Ab-ad correlation (within species)"
+  )) %>%
+  filter(!is.na(Parameter)) %>%
+  mutate(
+    estimate = ifelse(Parameter %in% 
+                        c("**Ab**axial SD Intercept", 
+                          "**Ad**axial SD Intercept"),
+                      exp(estimate), estimate),
+    conf.low = ifelse(Parameter %in% 
+                        c("**Ab**axial SD Intercept", 
+                          "**Ad**axial SD Intercept"),
+                      exp(conf.low), conf.low),
+    conf.high = ifelse(Parameter %in% 
+                        c("**Ab**axial SD Intercept", 
+                          "**Ad**axial SD Intercept"),
+                      exp(conf.high), conf.high)
+    ) %>%
+  mutate_if(is.numeric, ~ signif(.x, 3)) %>%
+  mutate_if(is.numeric, as.character) %>%
+  mutate(`95% HPD Interval` = str_c(conf.low, conf.high, sep = " - ")) %>%
+  select(Parameter, Estimate = estimate, `95% HPD Interval`, `$P$` = p) %>%
+  mutate(`$P$` = ifelse(`$P$` == "0", "< 0.001", `$P$`)) %>%
+  knitr::kable(align = 'llcl', caption = "**Table S1**. Ab- and adaxial stomatal densities (SD [mm$^{-2}$]) are similar across *Limonium* species and not altered by water deficit treatment (WD). Fixed effects of the WD treatment on natural log-transformed SD were small and not statistically significant based on 95% Highest Posterior Density (HPD) intervals and $P$-values. There was no significant correlation between ab-adaxial SD among species, but there was within species. Other model parameters not shown.")
+
+```
+
+---
+
+```{r table-s2, echo = FALSE, eval = TRUE}
+
+mS1b_tab %>%
+  mutate(Parameter = case_when(
+    term == "b_logaB_Intercept" ~ "**Ab**axial SP Intercept",
+    term == "b_logaD_Intercept" ~ "**Ad**axial SP Intercept",
+    term == "b_logaB_treatmentWD" ~ "Effect of WD on log(**Ab**axial SP)",
+    term == "b_logaD_treatmentWD" ~ "Effect of WD on log(**Ad**axial SP)",
+    term == "cor_spp__logaB_Intercept__logaD_Intercept" ~
+      "Ab-ad correlation (among species)",
+    term == "rescor__logaB__logaD" ~
+      "Ab-ad correlation (within species)"
+  )) %>%
+  filter(!is.na(Parameter)) %>%
+  mutate(
+    estimate = ifelse(Parameter %in% 
+                        c("**Ab**axial SP Intercept", 
+                          "**Ad**axial SP Intercept"),
+                      exp(estimate), estimate),
+    conf.low = ifelse(Parameter %in% 
+                        c("**Ab**axial SP Intercept", 
+                          "**Ad**axial SP Intercept"),
+                      exp(conf.low), conf.low),
+    conf.high = ifelse(Parameter %in% 
+                        c("**Ab**axial SP Intercept", 
+                          "**Ad**axial SP Intercept"),
+                      exp(conf.high), conf.high)
+    ) %>%
+  mutate_if(is.numeric, ~ signif(.x, 3)) %>%
+  mutate_if(is.numeric, as.character) %>%
+  mutate(`95% HPD Interval` = str_c(conf.low, conf.high, sep = " - ")) %>%
+  select(Parameter, Estimate = estimate, `95% HPD Interval`, `$P$` = p) %>%
+  mutate(`$P$` = ifelse(`$P$` == "0", "< 0.001", `$P$`)) %>%
+  knitr::kable(align = 'llcl', caption = "**Table S2**. Abaxial stomatal pore lengths (SP [$\\mu$m]) are generally larger than and adaxial SP across *Limonium* species, but not altered by water deficit treatment (WD). Fixed effects of the WD treatment on natural log-transformed SP were small and not statistically significant based on 95% Highest Posterior Density (HPD) intervals and $P$-values. There was no significant correlation between ab-adaxial SP among species, but there was within species. Other model parameters not shown.")
+
+```
+
+---
+
+```{r table-s3, echo = FALSE, eval = TRUE}
+
+full_join(lags, stomata, by = c("spp", "treatment", "rep")) %>%
+  select(Species = spp, Treatment = treatment, SD = sd,
+         SP = sp, `$g_\\textrm{s}$` = gs, `LA$_1$` = LA1) %>%
+  group_by(Species, Treatment) %>%
+  summarise_if(is.numeric, summarize_trait, digits = 3) %>%
+  ungroup() %>%
+  add_row(Species = "", Treatment = "", SD = "m$\\textrm{m}^{-1}$", 
+          SP = "$\\mu\\textrm{m}$", 
+          `$g_\\textrm{s}$` = "mol $\\textrm{H}_2$O $\\textrm{m}^{-2}$ $\\textrm{s}^{-1}$",
+          `LA$_1$` = "mm", .before = 1) %>%
+  knitr::kable(align = 'ccllll', caption = "**Table S3**. Stomata anatomical traits (SD = stomatal density, SP = pore length), stomatal conductance ($g_\\textrm{s}$), and leaf area (LA$_1$) for all the species under the well-watered (WW) and severe water deficit (WD) treatments. Parameters shown are the sum (SD) or average (SP) of both leaf surfaces. Stomatal conductance ($g_\\textrm{s}$) measured with gas-exchange analyzer under experimental conditions.  Each entry gives the mean $\\pm$ SE ($n$) where SE is the standard error and $n$ is the sample size. See Table 1 for species codes.") #%>%
+  #kable_styling() %>%
+  #add_header_above(c("test" = 6))
+
+```
+
+---
+
+```{r table-s4, echo = FALSE, eval = TRUE}
+
+rubisco %>%
+  mutate(rep = 1:nrow(.)) %>%
+  spread(trait, value) %>%
+  select(Species = spp, kcatc, sco) %>%
+  mutate(`$k_\\textrm{c}^\\textrm{cat}$` = round(kcatc, 2), 
+         `$S_\\textrm{c/o}$` = round(sco, 1)) %>%
+  select(-kcatc, -sco) %>%
+  group_by(Species) %>%
+  summarise_if(is.numeric, summarize_trait, digits = 3) %>%
+  ungroup() %>%
+  add_row(Species = "", 
+          `$k_\\textrm{c}^\\textrm{cat}$` = "$\\textrm{s}^{-1}$", 
+          `$S_\\textrm{c/o}$` = "mol $\\textrm{mol}^{-1}$", .before = 1) %>%
+  bind_cols(
+    tidy(m1, pars = c("kcatc_spp", "sco_spp")) %>%
+      mutate(
+        spp = str_replace(term, "^[[:alpha:]]+_spp\\[([0-9]{1,2})\\]$", "\\1"),
+        trait = str_replace(term, "^([[:alpha:]]+)_spp\\[[0-9]{1,2}\\]$", "\\1")
+      ) %>%
+      select(mu = estimate, se = std.error, spp, trait) %>%
+      gather(par, value, -spp, -trait) %>%
+      mutate(par = str_c(par, "_", trait)) %>%
+      select(-trait) %>%
+      spread(par, value) %>%
+      mutate(spp = as.numeric(spp)) %>%
+      arrange(spp) %>%
+      mutate_if(is.numeric, signif, digits = 3) %>%
+      mutate_if(is.numeric, as.character) %>%
+      transmute(
+        `Model $k_\\textrm{c}^\\textrm{cat}$` = 
+          str_c(mu_kcatc, " $\\pm$ ", se_kcatc),
+        `Model $S_\\textrm{c/o}$` = str_c(mu_sco, " $\\pm$ ", se_sco)
+      ) %>%
+      add_row(`Model $k_\\textrm{c}^\\textrm{cat}$` = "$\\textrm{s}^{-1}$", 
+              `Model $S_\\textrm{c/o}$` = "mol $\\textrm{mol}^{-1}$", .before = 1)
+  ) %>%
+  knitr::kable(align = 'cllll', caption = "**Table S4**. Rubisco kinetic parameters for each species: Rubisco carboxylase specific activity ($k_\\textrm{c}^\\textrm{cat}$) and specificity factor ($S_\\textrm{c/o}$). See Table 1 for species codes. The left columns are calculated from the raw data; the right columns beginning with 'Model' are estimated from a Bayesian multilevel model treating Species as a random effect and Rubisco kinetic parameters as correlated multivariate Gaussian responses (see *Materials and Methods* for further detail). Model-based parameter estimates are used in figures and statistical analyses. Each entry gives the mean $\\pm$ SE ($n$) where SE is the standard error and $n$ is the sample size.")
+
+```
+
+---
+
+```{r table-s5, echo = FALSE, eval = TRUE}
+
+m1_tab %>%
+  mutate(Parameter = case_when(
+    term == "b0_sd" ~ "SD Intercept",
+    term == "b_sd_drought" ~ "Effect of WD on SD",
+    term == "b0_sp" ~ "SP Intercept",
+    term == "b_sp_drought" ~ "Effect of WD on SP"
+  )) %>%
+  filter(!is.na(Parameter)) %>%
+  mutate_if(is.numeric, ~ signif(.x, 3)) %>%
+  mutate_if(is.numeric, as.character) %>%
+  # mutate_at(vars(estimate, std.error, conf.low, conf.high, p), 
+  #           add_zeroes, digits = 3) %>%
+  mutate(`95% HPD Interval` = str_c(conf.low, conf.high, sep = " - ")) %>%
+  select(Parameter, Estimate = estimate, SE = std.error,
+         `95% HPD Interval`, `$P$` = p) %>%
+  mutate(`$P$` = ifelse(`$P$` == "0", "< 0.001", `$P$`)) %>%
+  knitr::kable(align = 'lllcl', caption = "**Table S5**. Water deficit treatment (WD) had no significant effect on stomatal densith (SD) or pore length (SP) in *Limonium*. Fixed effects of the WD treatment on both traits were small and not statistically significant based on 95% Highest Posterior Density (HPD) intervals and $P$-values. SE is the standard error. Other model parameters not shown.")
+
+```
+
+---
+
+```{r table-s6, echo = FALSE, eval = TRUE}
+
+stomata %<>% mutate(spp1 = as.character(as.numeric(as.factor(spp))))
+
+tidy(m1, pars = "gsmax_spp", conf.int = TRUE, conf.method = "HPDinterval") %>%
+  mutate(spp1 = str_replace(term, "^gsmax_spp\\[([0-9]+)\\]$", "\\1")) %>%
+  left_join(select(stomata, spp, spp1), by = "spp1") %>%
+  distinct() %>%
+  mutate_if(is.numeric, ~ signif(.x, 3)) %>%
+  mutate_if(is.numeric, as.character) %>%
+  mutate_at(vars(estimate, std.error, conf.low, conf.high), 
+            add_zeroes, digits = 3) %>%
+  mutate(`95% HPD Interval` = str_c(conf.low, conf.high, sep = " - ")) %>%
+  select(Species = spp, `$g_\\textrm{smax}$` = estimate, SE = std.error,
+         `95% HPD Interval`) %>%
+  add_row(Species = "", SE = "", `95% HPD Interval` = "",
+          `$g_\\textrm{smax}$` = "mol $\\textrm{H}_2$O $\\textrm{m}^{-2}$ $\\textrm{s}^{-1}$", .before = 1) %>%
+  knitr::kable(align = 'cccc', caption = "**Table S6**. Average anatomical maximum stomatal conductance to water vapor ($g_\\textrm{smax}$ [mol $\\textrm{H}_2$O $\\textrm{m}^{-2}$ $\\textrm{s}^{-1}$]) based on Bayesian multilevel model estimates from stomatal density and size (see *Materials and Methods*). There was no significant effect of WD treatment on stomatal anatomy, therefore only value per species is reported. See Table 1 for species codes. SE = standard error. 95% HPD Interval is the 95% highest posterior density interval.")
+
+```
+
+---
+
+```{r table-s7, echo = FALSE, eval = TRUE}
+
+m2_tab %>%
+  mutate(Parameter = case_when(
+    term == "b_Intercept" ~ "$g_\\textrm{s}$ Intercept",
+    term == "b_treatmentWD" ~ "Effect of WD on $g_\\textrm{s}$",
+    term == "b_gsmax" ~ "Effect of $g_\\textrm{smax}$ on $g_\\textrm{s}$"
+  )) %>%
+  filter(!is.na(Parameter)) %>%
+  mutate_if(is.numeric, ~ signif(.x, 3)) %>%
+  mutate_if(is.numeric, as.character) %>%
+  # mutate_at(vars(estimate, std.error, conf.low, conf.high, p), 
+  #           add_zeroes, digits = 3) %>%
+  mutate(`95% HPD Interval` = str_c(conf.low, conf.high, sep = " - ")) %>%
+  select(Parameter, Estimate = estimate, SE = std.error,
+         `95% HPD Interval`, `$P$` = p) %>%
+  mutate(`$P$` = ifelse(`$P$` == "0", "< 0.001", `$P$`)) %>%
+  knitr::kable(align = 'lllcl', caption = "**Table S7**. Severe water deficit treatment (WD) lowered stomatal conductance ($g_\\textrm{s}$), but did not alter the effect of $g_\\textrm{smax}$ on $g_\\textrm{s}$ in *Limonium* based on 95% Highest Posterior Density (HPD) intervals and $P$-values. SE is the standard error. Other model parameters not shown.")
+
+```
+
+---
+
+```{r table-s8, echo = FALSE, eval = TRUE}
+
+m3_tab %>%
+  mutate(Parameter = case_when(
+    term == "b_sd_Intercept" ~ "SD Intercept",
+    term == "b_sp_Intercept" ~ "SP Intercept",
+    term == "b_sd_la" ~ "Effect of LA$_1$ on SD",
+    term == "b_sp_la" ~ "Effect of LA$_1$ on SP"
+  )) %>%
+  filter(!is.na(Parameter)) %>%
+  mutate_if(is.numeric, ~ signif(.x, 3)) %>%
+  mutate_if(is.numeric, as.character) %>%
+  # mutate_at(vars(estimate, std.error, conf.low, conf.high, p), 
+  #           add_zeroes, digits = 3) %>%
+  mutate(`95% HPD Interval` = str_c(conf.low, conf.high, sep = " - ")) %>%
+  select(Parameter, Estimate = estimate, SE = std.error,
+         `95% HPD Interval`, `$P$` = p) %>%
+  mutate(`$P$` = ifelse(`$P$` == "0", "< 0.001", `$P$`)) %>%
+  knitr::kable(align = 'lllcl', caption = "**Table S8**. Greater leaf area (LA$_1$) is associated lower stomatal density (SD) in *Limonium*, but has no effect on pore length (SP) based on 95% Highest Posterior Density (HPD) intervals and $P$-values. SE is the standard error. Other model parameters not shown.")
+
+```
