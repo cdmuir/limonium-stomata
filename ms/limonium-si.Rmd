@@ -7,12 +7,12 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_knit$set(root.dir = "/Volumes/GoogleDrive/My Drive/research/01_active/limonium")
+knitr::opts_knit$set(root.dir = "/Volumes/GoogleDrive/My Drive/research/01_active/limonium-stomata")
 # knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file(path = ".."))
 
 ```
 
-```{r source, echo = FALSE, message = FALSE}
+```{r source, echo = FALSE, message = FALSE, warning=FALSE}
 
 source("r/header.R")
 
@@ -46,9 +46,7 @@ The adaxial stomatal pore length was consistenly shorter than that of the abaxia
 
 ---
 
-```{r figS1, echo = FALSE, align = 'c', fig.width = 6.5, fig.cap = "**Figure S1** Stomatal density (Panel A) pore length (Panel B) on abaxial ($x$-axes) and adaxial ($y$-axes) leaf surfaces across *Limonium* species. Each point is the model-estimated average trait value for each of 10 species in well-watered control (WW; black circles) and severe water-deficit (WD; white circles) treatments. Bars are +/- one standard error. The gray, dashed line is the 1:1 line for reference. Stomatal densities are similar on each surface (Panel A), but adaxial stomata are generally smaller than abaxial (Panel B)."}
-knitr::include_graphics("../figures/figS1.pdf")
-```
+**Figure S1**. Stomatal density (Panel A) pore length (Panel B) on abaxial ($x$-axes) and adaxial ($y$-axes) leaf surfaces across *Limonium* species. Each point is the model-estimated average trait value for each of 10 species in well-watered control (WW; black circles) and severe water-deficit (WD; white circles) treatments. Bars are +/- one standard error. The gray, dashed line is the 1:1 line for reference. Stomatal densities are similar on each surface (Panel A), but adaxial stomata are generally smaller than abaxial (Panel B).
 
 ---
 
