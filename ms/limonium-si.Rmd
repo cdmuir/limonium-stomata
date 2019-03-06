@@ -46,7 +46,7 @@ The adaxial stomatal pore length was consistenly shorter than that of the abaxia
 
 ---
 
-**Figure S1**. Stomatal density (Panel A) pore length (Panel B) on abaxial ($x$-axes) and adaxial ($y$-axes) leaf surfaces across *Limonium* species. Each point is the model-estimated average trait value for each of 10 species in well-watered control (WW; black circles) and severe water-deficit (WD; white circles) treatments. Bars are +/- one standard error. The gray, dashed line is the 1:1 line for reference. Stomatal densities are similar on each surface (Panel A), but adaxial stomata are generally smaller than abaxial (Panel B).
+**Figure S1**. Stomatal density (Panel A) pore length (Panel B) on abaxial ($x$-axes) and adaxial ($y$-axes) leaf surfaces across *Limonium* species. Each point is the model-estimated average trait value for each of 10 species in well-watered control (WW; black circles) and severe water-deficit (WD; white circles) treatments. Bars are +/- one standard error. The gray, dashed line is the 1:1 line for reference. Stomatal densities are similar on each surface (Panel A), but adaxial stomata are generally smaller than abaxial (Panel B). Regression lines are not plotted because we did not model these variables as a causal relationship, but rather as covarying within and between species. Correlation estimates and $P$-values are in Table S1.
 
 ---
 
@@ -210,7 +210,7 @@ m1_tab %>%
   select(Parameter, Estimate = estimate, SE = std.error,
          `95% HPD Interval`, `$P$` = p) %>%
   mutate(`$P$` = ifelse(`$P$` == "0", "< 0.001", `$P$`)) %>%
-  knitr::kable(align = 'lllcl', caption = "**Table S5**. Water deficit treatment (WD) had no significant effect on stomatal densith (SD) or pore length (SP) in *Limonium*. Fixed effects of the WD treatment on both traits were small and not statistically significant based on 95% Highest Posterior Density (HPD) intervals and $P$-values. SE is the standard error. Other model parameters not shown.")
+  knitr::kable(align = 'lllcl', caption = "**Table S5**. Water deficit treatment (WD) had no significant effect on stomatal density (SD) or pore length (SP) in *Limonium*. Fixed effects of the WD treatment on both traits were small and not statistically significant based on 95% Highest Posterior Density (HPD) intervals and $P$-values. SE is the standard error. Other model parameters not shown.")
 
 ```
 

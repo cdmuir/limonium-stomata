@@ -60,7 +60,10 @@ m2_tab <- m2b$fit %>%
 
 write_rds(m2_tab, "objects/m2_tab.rds")
 
+
 # Figure 4 ----
+
+r2 <- bayes_R2(m2b)
 
 fig4 <- stomata %>%
   filter(!is.na(gs), !is.na(gsmax)) %>%
@@ -87,6 +90,16 @@ f4 <- ggplot(fig4, aes(x = gsmax, y = gs, fill = Treatment)) +
   scale_x_continuous(limits = c(1, 3)) +
   scale_y_log10() +
   scale_fill_manual(values = c("black", "white")) +
+  annotate(
+    "text", 3, 0.05, hjust = 1, vjust = 0, parse = TRUE,
+    label = glue("atop(paste(italic(R) ^ 2, \" = {r2}\"), paste(italic(P), \"{p}\"))",
+                 r2 = round(r2["R2", "Estimate"], 2), 
+                 p = ifelse(
+                   m2_tab$p[m2_tab$term == "b_gsmax"] < 0.001,
+                   " < 0.001",
+                   str_c(" = ", round(m2_tab$p[m2_tab$term == "b_gsmax"], 3)
+                   )))
+  ) +
   geom_ribbon(data = filter(ex, Treatment == "WW"), 
               mapping = aes(x = x, ymin = lci_gs, ymax = uci_gs), 
               inherit.aes = FALSE, fill = "grey50", color = "grey25") +

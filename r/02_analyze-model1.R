@@ -125,7 +125,7 @@ f2a <- ggplot(fig2, aes(
   geom_errorbarh() +
   geom_point(size = 3, shape = 21) +
   xlab(expression(paste("Stomatal density [m", m^-2, "]"))) +
-  ylab(expression(paste("Stomatal size [", mu, m^2, "]"))) +
+  ylab(expression(paste("0.5(", 2%*%phantom(), "Stomatal pore length)", phantom()^2, " [", mu, m^2, "]"))) +
   theme_cdm() +
   theme(
     legend.position = "none",
@@ -172,7 +172,7 @@ f2c <- ggplot(fig2, aes(
   geom_errorbar() +
   geom_errorbarh() +
   geom_point(size = 3, shape = 21) +
-  xlab(expression(paste("Stomatal size [", mu, m^2, "]"))) +
+  xlab(expression(paste("0.5(", 2%*%phantom(), "Stomatal pore length)", phantom()^2, " [", mu, m^2, "]"))) +
   ylab(expression(paste("Anatomical ", italic(g)[smax], " [mol ", H[2], "O ", m^-2~s^-1, "]"))) +
   theme_cdm() +
   theme(
