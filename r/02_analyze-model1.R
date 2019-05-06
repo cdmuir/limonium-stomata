@@ -69,63 +69,107 @@ m1_stan$n_sco <- length(m1_stan$spp_sco)
 
 write_rds(m1_stan, "objects/m1_stan.rds")
 
-# m1 <- stan("m1.stan", data = m1_stan, cores = 4, iter = 2e4, thin = 1e1)
-# write_rds(m1, "objects/m1.rds")
+# There is evidence for species x drought interactions on stomatal traits
+m1_df <- stomata %>%
+  select(spp_stomata = spp, treatment, sd1 = sd, sp1 = sp, b, m) %>%
+  mutate(drought = as.numeric(treatment == "WD")) %>%
+  filter(!is.na(sd1), !is.na(sp1))
 
-m1 <- read_rds("objects/m1.rds")
+if (run) {
+  
+  ma <- brm(mvbind(sd1, sp1) ~ drought + (1 | spp_stomata), data = m1_df,
+            cores = 4, chains = 4, seed = 55902492) %>%
+    add_criterion("loo", reloo = TRUE)
+  mb <- brm(mvbind(sd1, sp1) ~ drought + (drought | spp_stomata), data = m1_df,
+            cores = 4, chains = 4, seed = 167740183) %>%
+    add_criterion("loo", reloo = TRUE)
+  
+  write_rds(ma, "objects/ma_gsmaxdiff.rds")
+  write_rds(mb, "objects/mb_gsmaxdiff.rds")
+  
+} else {
+  
+  ma <- read_rds("objects/ma_gsmaxdiff.rds")
+  mb <- read_rds("objects/mb_gsmaxdiff.rds")
+  
+}
+
+bayes_R2(ma)
+bayes_R2(mb)
+loo_compare(ma, mb, criterion = "loo")
+
+if (run) {
+  
+  # m1a: no species x drought interaction
+  m1a <- stan("m1a.stan", data = m1_stan, cores = 4, iter = 2e4, thin = 1e1,
+              seed = 353601735)
+  write_rds(m1a, "objects/m1a.rds")
+
+  # m1b: including species x drought interaction
+  m1b <- stan("m1b.stan", data = m1_stan, cores = 4, iter = 2e4, thin = 1e1,
+              seed = 605663820)
+  write_rds(m1b, "objects/m1b.rds")
+
+} else {
+  
+  m1a <- read_rds("objects/m1a.rds")
+  m1b <- read_rds("objects/m1b.rds")
+
+}
 
 # Parameter summary ----
 
 pars1 <- c("b0_sd", "b_sd_drought", "b0_sp", "b_sp_drought", 
-           "sigma_sd", "sigma_sp", "cor_1", "rescor", "Omega_rubisco[1,2]")
+           "sigma_sd", "sigma_sp", "cor_1", "cor_2", "rescor", 
+           "Omega_rubisco[1,2]")
 
-m1_tab <- tidy(m1, pars = pars1, rhat = TRUE, ess = TRUE, conf.int = TRUE) %>%
+m1_tab <- tidy(m1b, pars = pars1, rhat = TRUE, ess = TRUE, conf.int = TRUE) %>%
   left_join(pars1 %>%
-              as.data.frame(m1, pars = .) %>%
+              as.data.frame(m1b, pars = .) %>%
               summarize_all(get_p) %>%
               gather(term, p), by = "term")
 
 write_rds(m1_tab, "objects/m1_tab.rds")
 
-# Figure 2 ----
+# Figure S2 ----
 
-fig2 <- stomata %>%
-  filter(!is.na(sd), !is.na(s)) %>%
-  select(spp, treatment, sd, s, gsmax) %>%
+figS2 <- stomata %>%
+  filter(!is.na(sd), !is.na(sp)) %>%
+  select(spp, treatment, sd, sp, gsmax) %>%
   group_by(spp, treatment) %>%
   summarize(
     sd_sd = sd(sd),
-    sd_s = sd(s),
+    sd_sp = sd(sp),
     sd_gsmax = sd(gsmax),
     sd = mean(sd),
-    s = mean(s),
+    sp = mean(sp),
     gsmax = mean(gsmax),
     n = n()
   ) %>%
   mutate(
     se_sd = sd_sd / sqrt(n),
-    se_s = sd_s / sqrt(n),
+    se_sp = sd_sp / sqrt(n),
     se_gsmax = sd_gsmax / sqrt(n)
   ) %>%
   mutate_if(function(.x) inherits(.x, "units"), drop_units)
 
 ## Panel A ----
 
-f2a <- ggplot(fig2, aes(
-  x = sd, y = s,
+fS2a <- ggplot(figS2, aes(
+  x = sd, y = sp,
   xmin = sd - se_sd, xmax = sd + se_sd,
-  ymin = s - se_s, ymax = s + se_s,
+  ymin = sp - se_sp, ymax = sp + se_sp,
   fill = treatment)
 ) +
   scale_x_continuous(limits = c(70, 180), breaks = seq(75, 175, 25),
                      position = "top") +
-  scale_y_continuous(limits = c(900, 2100), breaks = c(1000, 1500, 2000)) +
+  scale_y_continuous(limits = c(20, 32), breaks = seq(21, 30, 3)) +
   scale_fill_manual("Treatment", values = c("black", "white")) +
   geom_errorbar() +
   geom_errorbarh() +
   geom_point(size = 3, shape = 21) +
   xlab(expression(paste("Stomatal density [m", m^-2, "]"))) +
-  ylab(expression(paste("0.5(", 2%*%phantom(), "Stomatal pore length)", phantom()^2, " [", mu, m^2, "]"))) +
+  ylab(expression(paste("Stomatal pore lengt", h^phantom(1), " [", mu, "m]"))) +
   theme_cdm() +
   theme(
     legend.position = "none",
@@ -136,7 +180,7 @@ f2a <- ggplot(fig2, aes(
 
 ## Panel B ----
 
-f2b <- ggplot(fig2, aes(
+fS2b <- ggplot(figS2, aes(
   x = sd, y = gsmax,
   xmin = sd - se_sd, xmax = sd + se_sd,
   ymin = gsmax - se_gsmax, ymax = gsmax + se_gsmax,
@@ -159,20 +203,20 @@ f2b <- ggplot(fig2, aes(
 
 ## Panel C ----
 
-f2c <- ggplot(fig2, aes(
-  x = s, y = gsmax,
-  xmin = s - se_s, xmax = s + se_s,
+fS2c <- ggplot(figS2, aes(
+  x = sp, y = gsmax,
+  xmin = sp - se_sp, xmax = sp + se_sp,
   ymin = gsmax - se_gsmax, ymax = gsmax + se_gsmax,
   fill = treatment)
 ) +  
-  scale_x_continuous(limits = c(900, 2100), breaks = c(1000, 1500, 2000)) +
+  scale_x_continuous(limits = c(20, 32), breaks = seq(21, 30, 3)) +
   scale_y_continuous(limits = c(1.2, 2.8), breaks = seq(1.25, 2.75, 0.5),
                      position = "right") +
   scale_fill_manual(values = c("black", "white")) +
   geom_errorbar() +
   geom_errorbarh() +
   geom_point(size = 3, shape = 21) +
-  xlab(expression(paste("0.5(", 2%*%phantom(), "Stomatal pore length)", phantom()^2, " [", mu, m^2, "]"))) +
+  xlab(expression(paste("Stomatal pore lengt", h^phantom(1), " [", mu, "m]"))) +
   ylab(expression(paste("Anatomical ", italic(g)[smax], " [mol ", H[2], "O ", m^-2~s^-1, "]"))) +
   theme_cdm() +
   theme(
@@ -182,38 +226,41 @@ f2c <- ggplot(fig2, aes(
   ) +
   NULL
 
-fguide <- get_legend(f2a + theme(legend.position = "left"))
+fguide <- get_legend(fS2a + theme(legend.position = "left"))
 
-left_col <- plot_grid(f2a, f2b, labels = c("A", "B"), ncol = 1, align = "v", 
+left_col <- plot_grid(fS2a, fS2b, labels = c("A", "B"), ncol = 1, align = "v", 
                       axis = "r", hjust = -5, vjust = c(5, 1.5))
-rght_col <- plot_grid(fguide, f2c, labels = c("", "C"), ncol = 1, align = "hv", 
-                      axis = "l")#, label_x = 1, hjust = 1.5)
+rght_col <- plot_grid(fguide, fS2c, labels = c("", "C"), ncol = 1, 
+                      align = "hv", axis = "l")
 plot_grid(left_col, rght_col, ncol = 2, align = "hv")
 
-ggsave("figures/fig2.eps", w = 6.5, h = 6.175)
+ggsave("figures/figS2.pdf", w = 6.5, h = 6.175)
 
-# Figure 3 ----
+# Figure 2 ----
 
-ex <- m1 %>%
+ex <- m1b %>%
   as.data.frame(
-    pars = c("gsmax_spp", "kcatc_spp", "sco_spp")
+    pars = c("gsmax_ww_spp", "gsmax_wd_spp", "kcatc_spp", "sco_spp")
   ) %>%
   mutate(iter = 1:nrow(.))
 
-fig3 <- m1 %>%
-  tidy(pars = c("gsmax_spp", "kcatc_spp", "sco_spp")) %>%
+fig2 <- m1b %>%
+  tidy(pars = c("gsmax_ww_spp", "gsmax_wd_spp", "kcatc_spp", "sco_spp")) %>%
   mutate(
-    spp1 = str_replace(term, "^[a-z]+_spp\\[([0-9]+)\\]$", "\\1"),
-    trait = str_replace(term, "^*([a-z]+)_spp\\[[0-9]+\\]$", "\\1")
+    spp1 = str_replace(term, "^[a-z]+_[a-z]*_*spp\\[([0-9]+)\\]$", "\\1"),
+    trait = str_replace(term, "^*([a-z]+)_[a-z]*_*spp\\[[0-9]+\\]$", "\\1"),
+    treatment = str_replace(term, "^[a-z]+_([a-z]*)_*spp\\[[0-9]+\\]$", "\\1")
   ) %>%
   select(-term) %>%
   rename(mu = estimate, se = std.error) %>%
-  gather(key, value, -trait, -spp1) %>%
-  mutate(term = str_c(key, "_", trait)) %>%
-  select(term, spp1, value) %>%
-  gather(key, value, -spp1, -term) %>%
-  select(-key) %>%
-  spread(term, value)
+  gather(key, value, -trait, -treatment, -spp1) %>%
+  mutate(treatment = str_replace(treatment, "^$", "ww")) %>%
+  bind_rows(
+    filter(. , trait != "gsmax") %>%
+      mutate(treatment = "wd")
+  ) %>%
+  group_by(spp1, trait, treatment) %>%
+  spread(key, value)
 
 b1 <- ex %>%
   gather(par, value, -iter) %>%
@@ -225,10 +272,14 @@ b1 <- ex %>%
   group_by(iter) %>%
   spread(trait, value) %>%
   summarise(
-    b0_kcatc = coef(lm(kcatc ~ gsmax))[1],
-    b_kcatc_gsmax = coef(lm(kcatc ~ gsmax))[2],
-    b0_sco = coef(lm(sco ~ gsmax))[1],
-    b_sco_gsmax = coef(lm(sco ~ gsmax))[2]
+    b0_kcatc_wd = coef(lm(kcatc ~ gsmax_wd))[1],
+    b_kcatc_gsmax_wd = coef(lm(kcatc ~ gsmax_wd))[2],
+    b0_sco_wd = coef(lm(sco ~ gsmax_wd))[1],
+    b_sco_gsmax_wd = coef(lm(sco ~ gsmax_wd))[2],
+    b0_kcatc_ww = coef(lm(kcatc ~ gsmax_ww))[1],
+    b_kcatc_gsmax_ww = coef(lm(kcatc ~ gsmax_ww))[2],
+    b0_sco_ww = coef(lm(sco ~ gsmax_ww))[1],
+    b_sco_gsmax_ww = coef(lm(sco ~ gsmax_ww))[2]
   ) %>%
   select(-iter)
 
@@ -242,70 +293,131 @@ m1_tab %<>%
                   gather(term, p), by = "term"))
 
 b1 %<>% 
-  crossing(x = seq(min(fig3$mu_gsmax), 
-                   max(fig3$mu_gsmax), length.out = 1e2)) %>%
+  crossing(x = seq(min(filter(fig2, trait == "gsmax") %>%
+                         transmute(lower = mu - se) %>%
+                         pull(lower)),
+                   max(filter(fig2, trait == "gsmax") %>%
+                         transmute(upper = mu + se) %>%
+                         pull(upper)),
+                   length.out = 1e2)) %>%
   mutate(
-    mu_kcatc = b0_kcatc + b_kcatc_gsmax * x,
-    mu_sco = b0_sco + b_sco_gsmax * x
+    mu_kcatc_wd = b0_kcatc_wd + b_kcatc_gsmax_wd * x,
+    mu_sco_wd = b0_sco_wd + b_sco_gsmax_wd * x,
+    mu_kcatc_ww = b0_kcatc_ww + b_kcatc_gsmax_ww * x,
+    mu_sco_ww = b0_sco_ww + b_sco_gsmax_ww * x
   ) %>%
+  select_at(vars(x, mu_kcatc_wd, mu_sco_wd, mu_kcatc_ww, mu_sco_ww)) %>%
   group_by(x) %>%
-  summarize(
-    est_kcatc = median(mu_kcatc),
-    lci_kcatc = hdi(mu_kcatc)[1, 1],
-    uci_kcatc = hdi(mu_kcatc)[1, 2],
-    est_sco = median(mu_sco),
-    lci_sco = hdi(mu_sco)[1, 1],
-    uci_sco = hdi(mu_sco)[1, 2]
-  )
+  point_interval(.point = median, .interval = hdi) %>%
+  gather(key, value, -x, -.width, -.point, -.interval) %>%
+  mutate(treatment = str_replace(key, "^mu_[:alpha:]+_(w[w|d])[\\.]*[(low|upp)er]*$", "\\1")) %>%
+  group_by(x, .width, .point, .interval, treatment) %>%
+  mutate(key = str_replace(key, "^(mu_[:alpha:]+)(_w[w|d])([\\.]*[(low|upp)er]*)$", "\\1\\3")) %>%
+  spread(key, value) %>%
+  rename(
+    mu_gsmax = x, 
+    lower_kcatc = mu_kcatc.lower,
+    upper_kcatc = mu_kcatc.upper,
+    lower_sco = mu_sco.lower,
+    upper_sco = mu_sco.upper
+  ) %>%
+  mutate(
+    lower_gsmax = 0,
+    upper_gsmax = 0
+  ) %>%
+  mutate(Treatment = factor(toupper(treatment), levels = c("WW", "WD")))
 
-r2 <- as.data.frame(m1, c("gsmax_spp", "kcatc_spp", "sco_spp")) %>%
+r2 <- as.data.frame(m1b, c("gsmax_wd_spp", "gsmax_ww_spp", "kcatc_spp",
+                           "sco_spp")) %>%
   mutate(iter = 1:nrow(.)) %>%
   gather(par, value, -iter) %>%
   mutate(
-    spp = str_replace(par, "^[[:print:]]+_spp\\[([0-9]+)\\]$", "\\1"),
+    spp = str_replace(par, "^[[:print:]]+_[a-z]*_*spp\\[([0-9]+)\\]$", "\\1"),
     trait = str_replace(par, "^([[:print:]]+)_spp\\[([0-9]+)\\]$", "\\1")
   ) %>%
   select(-par) %>%
   group_by(iter) %>%
   spread(trait, value) %>%
   summarize(
-    r_kcatc = cor(gsmax, kcatc),
-    r_sco = cor(gsmax, sco),
-    r2_kcatc = cor(gsmax, kcatc) ^ 2,
-    r2_sco = cor(gsmax, sco) ^ 2
+    r_kcatc_wd = cor(gsmax_wd, kcatc),
+    r_sco_wd = cor(gsmax_wd, sco),
+    r2_kcatc_wd = cor(gsmax_wd, kcatc) ^ 2,
+    r2_sco_wd = cor(gsmax_wd, sco) ^ 2,
+    r_kcatc_ww = cor(gsmax_ww, kcatc),
+    r_sco_ww = cor(gsmax_ww, sco),
+    r2_kcatc_ww = cor(gsmax_ww, kcatc) ^ 2,
+    r2_sco_ww = cor(gsmax_ww, sco) ^ 2
   ) %>%
   ungroup() %>%
   select(-iter) %>%
-  tidyMCMC(estimate.method = "median", conf.int = TRUE, conf.method = "HPDinterval")
+  point_interval(.point = median, .interval = hdi)
+
+fig2 %<>%
+  ungroup() %>%
+  mutate(lower = mu - se, upper = mu + se) %>%
+  select(-se) %>%
+  unite("trait_treatment", trait, treatment) %>%
+  gather(term, value, -spp1, -trait_treatment) %>%
+  separate(trait_treatment, c("trait", "treatment")) %>%
+  group_by(treatment) %>%
+  unite("term_trait", term, trait) %>%
+  spread(term_trait, value) %>%
+  mutate(Treatment = factor(toupper(treatment), levels = c("WW", "WD")))
+
+l1 <- full_join(
+  r2 %>%
+    select_at(vars(matches("^r2_(kcatc|sco)_w(w|d)$"))) %>%
+    gather(term, r2) %>%
+    mutate(
+      response = str_replace(term, "^r2_(kcatc|sco)_w(w|d)$", "\\1"),
+      treatment = str_replace(term, "^r2_(kcatc|sco)_w(w|d)$", "w\\2"),
+      r2 = round(r2, 2)
+    ) %>%
+    select(r2, response, treatment),
+  m1_tab %>%
+    filter(str_detect(term, "^b_(kcatc|sco)_gsmax_w[w|d]{1}$")) %>%
+    mutate(
+      response = str_replace(term, "^b_(kcatc|sco)_gsmax_w(w|d)$", "\\1"),
+      treatment = str_replace(term, "^b_(kcatc|sco)_gsmax_w(w|d)$", "w\\2"),
+      p = ifelse(p < 0.001, " < 0.001", str_c(" = ", round(p, 3)))
+    ) %>%
+    select(p, response, treatment),
+  by = c("response", "treatment")
+) %>% 
+  mutate(
+    label = glue("atop(paste(italic(R) ^ 2, \" = {r2}\"), paste(italic(P), \"{p}\"))", r2 = r2, p = p),
+    mu_gsmax = ifelse(response == "kcatc", 1.25, 2.75),
+    mu_kcatc = ifelse(response == "kcatc", 3.75, NA),
+    mu_sco = ifelse(response == "kcatc", NA, 120),
+    lower_gsmax = 0,
+    upper_gsmax = 0,
+    lower_kcatc = 0,
+    upper_kcatc = 0,
+    lower_sco = 0,
+    upper_sco = 0
+  ) %>%
+  mutate(Treatment = factor(toupper(treatment), levels = c("WW", "WD")))
 
 ## Panel A ----
 
-f3a <- ggplot(fig3, aes(
+f2a <- ggplot(fig2, aes(
   x = mu_gsmax, y = mu_kcatc,
-  xmin = mu_gsmax - se_gsmax, xmax = mu_gsmax + se_gsmax,
-  ymin = mu_kcatc - se_kcatc, ymax = mu_kcatc + se_kcatc
+  xmin = lower_gsmax, xmax = upper_gsmax,
+  ymin = lower_kcatc, ymax = upper_kcatc,
+  fill = Treatment
 )) +  
-  scale_x_continuous(limits = c(1.2, 2.8), breaks = seq(1.25, 2.75, 0.5),
-                     position = "top") +
-  geom_ribbon(data = b1, 
-              mapping = aes(x = x, ymin = lci_kcatc, ymax = uci_kcatc), 
-              inherit.aes = FALSE, fill = "grey50") +
-  geom_line(data = b1, mapping = aes(x = x, y = est_kcatc), 
-            size = 1.2, inherit.aes = FALSE) +
+  facet_wrap(. ~ Treatment) +
+  scale_x_continuous(limits = c(1.2, 2.8), breaks = seq(1.25, 2.75, 0.5)) +
+  scale_y_continuous(limits = c(1.5, 3.75), breaks = seq(1.75, 3.75, 0.5)) +
+  scale_fill_manual("Treatment", values = c("black", "white")) +
+  geom_ribbon(data = b1, fill = "grey50") +
+  geom_line(data = b1, size = 1.2, lineend = "round") +
   geom_errorbar() +
   geom_errorbarh() +
-  geom_point(size = 3) +
-  annotate(
-    "text", 1.25, 3.75, hjust = 0, vjust = 1, parse = TRUE,
-    label = glue("atop(paste(italic(R) ^ 2, \" = {r2}\"), paste(italic(P), \"{p}\"))",
-                 r2 = round(r2$estimate[r2$term == "r2_kcatc"], 2), 
-                 p = ifelse(
-                   m1_tab$p[m1_tab$term == "b_kcatc_gsmax"] < 0.001,
-                   " < 0.001",
-                   str_c(" = ", round(m1_tab$p[m1_tab$term == "b_kcatc_gsmax"], 3)
-                 )))
-    ) +
-      ylab(expression(paste(italic(k)[textstyle(cat)]^textstyle(c), " [", s ^ -1, "]"))) +
+  geom_point(size = 3, shape = 21) +
+  geom_text(data = filter(l1, response == "kcatc"), 
+            aes(label = label), parse = TRUE, hjust = 0, vjust = 1) +
+  ylab(expression(paste(italic(k)[textstyle(cat)]^textstyle(c), " [", s ^ -1, "]"))) +
   xlab(expression(paste("Anatomical ", italic(g)[smax], " [mol ", H[2], "O ", m^-2~s^-1, "]"))) +
   theme_cdm() +
   theme(
@@ -317,36 +429,73 @@ f3a <- ggplot(fig3, aes(
 
 ## Panel B ----
 
-f3b <- ggplot(fig3, aes(
+f2b <- ggplot(fig2, aes(
   x = mu_gsmax, y = mu_sco,
-  xmin = mu_gsmax - se_gsmax, xmax = mu_gsmax + se_gsmax,
-  ymin = mu_sco - se_sco, ymax = mu_sco + se_sco
+  xmin = lower_gsmax, xmax = upper_gsmax,
+  ymin = lower_sco, ymax = upper_sco,
+  fill = Treatment
 )) +  
+  facet_wrap(. ~ Treatment) +
   scale_x_continuous(limits = c(1.2, 2.8), breaks = seq(1.25, 2.75, 0.5)) +
-  geom_ribbon(data = b1, 
-              mapping = aes(x = x, ymin = lci_sco, ymax = uci_sco), 
-              inherit.aes = FALSE, fill = "gray50") +
-  geom_line(data = b1, mapping = aes(x = x, y = est_sco), 
-            size = 1.2, inherit.aes = FALSE) +
+  scale_y_continuous(limits = c(105, 120), breaks = seq(105, 120, 5)) +
+  scale_fill_manual("Treatment", values = c("black", "white")) +
+  geom_ribbon(data = b1, fill = "grey50") +
+  geom_line(data = b1, size = 1.2, lineend = "round") +
   geom_errorbar() +
   geom_errorbarh() +
-  geom_point(size = 3) +
-  annotate(
-    "text", 2.75, 120, hjust = 1, vjust = 1, parse = TRUE,
-    label = glue("atop(paste(italic(R) ^ 2, \" = {r2}\"), paste(italic(P), \" = {p}\"))",
-                 r2 = round(r2$estimate[r2$term == "r2_sco"], 2), 
-                 p = round(m1_tab$p[m1_tab$term == "b_sco_gsmax"], 3))
-  ) +
+  geom_point(size = 3, shape = 21) +
+  geom_text(data = filter(l1, response == "sco"), 
+            aes(label = label), parse = TRUE, hjust = 1, vjust = 1) +
   ylab(expression(paste(italic(S)[C/O], " [mol ", mol ^ -1, "]"))) +
   xlab(expression(paste("Anatomical ", italic(g)[smax], " [mol ", H[2], "O ", m^-2~s^-1, "]"))) +
   theme_cdm() +
   theme(
-    legend.position = "none",
+    legend.position = "top",
     plot.margin = unit(c(0, 0, 0, 0), units = "cm")
   ) +
   NULL
 
-plot_grid(f3a, f3b, ncol = 1, align = "hv", labels = c("A", "B"), axis = "t")
+plot_grid(f2a, f2b, ncol = 1, align = "h", labels = c("A", "B"), axis = "t")
 
-ggsave("figures/fig3.eps", w = 3.25, h = 6.5)
+ggsave("figures/fig2.pdf", w = 4.5, h = 6)
 
+# Figure S3 ----
+# Effect of drought treatment on gsmax by species
+
+stomata <- read_csv("data/limonium-stomata.csv") %>%
+  mutate(spp1 = as.numeric(as.factor(spp))) %>%
+  group_by(spp) %>%
+  summarize(spp1 = as.character(first(spp1)))
+
+figS3 <- as.data.frame(m1b, pars = c("gsmax_ww_spp", "gsmax_wd_spp"))  %>%
+  mutate(iter = 1:nrow(.)) %>%
+  gather(key, value, -iter) %>%
+  mutate(
+    spp1 = str_replace(key, "^gsmax_w(w|d)_spp\\[([0-9]{1,2})\\]$", "\\2"),
+    treatment = str_replace(key, "^gsmax_w(w|d)_spp\\[([0-9]{1,2})\\]$", 
+                            "gsmax_w\\1")
+  ) %>%
+  select(-key) %>%
+  group_by(iter, spp1) %>%
+  spread(treatment, value) %>%
+  ungroup() %>%
+  mutate(gsmax_diff = gsmax_wd / gsmax_ww) %>%
+  select(spp1, gsmax_diff) %>%
+  group_by(spp1) %>%
+  point_interval(.width = 0.95, .point = median, .interval = hdi) %>%
+  arrange(gsmax_diff) %>%
+  full_join(stomata, by = "spp1") %>%
+  mutate(spp = factor(spp, levels = spp))
+
+ggplot(figS3, aes(spp, gsmax_diff)) +
+  geom_hline(yintercept = 1, linetype = "dashed") +
+  geom_pointinterval() +
+  xlab("Species") +
+  ylab(expression(frac(italic(g)[paste("smax",",WW")], italic(g)[paste("smax",",WD")]))) +
+  theme_cdm() +
+  theme(
+    axis.text.x = element_text(angle = 45, vjust = 0.5),
+    axis.title.y = element_text(angle = 0, vjust = 0.5)
+  )
+
+ggsave("figures/figS3.pdf", width = 4, height = 4)

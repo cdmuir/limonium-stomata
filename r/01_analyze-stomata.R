@@ -14,10 +14,17 @@ s1 <- stomata %>%
   rename_if(is.numeric, str_replace, pattern = "([[:alpha:]]+)", 
             replacement = "log_\\1")
 
-# mS1a <- brm(cbind(log_aB, log_aD) ~ treatment + (treatment | p | spp), 
-#            data = s1, chains = 4, cores = 4)
-# write_rds(mS1a, "objects/mS1a.rds")
-mS1a <- read_rds("objects/mS1a.rds")
+if (run) {
+  
+  mS1a <- brm(mvbind(log_aB, log_aD) ~ treatment + (treatment | p | spp), 
+             data = s1, chains = 4, cores = 4, seed = 799241667)
+  write_rds(mS1a, "objects/mS1a.rds")
+  
+} else {
+  
+  mS1a <- read_rds("objects/mS1a.rds")
+
+}
 
 # Parameter summary ----
 
@@ -85,10 +92,17 @@ s2 <- stomata %>%
   rename_if(is.numeric, str_replace, pattern = "([[:alpha:]]+)", 
             replacement = "log_\\1")
 
-# mS1b <- brm(cbind(log_aB, log_aD) ~ treatment + (treatment | p | spp), 
-#            data = s2, chains = 4, cores = 4)
-# write_rds(mS1b, "objects/mS1b.rds")
-mS1b <- read_rds("objects/mS1b.rds")
+if (run) {
+  
+  mS1b <- brm(mvbind(log_aB, log_aD) ~ treatment + (treatment | p | spp), 
+             data = s2, chains = 4, cores = 4, seed = 100623159)
+  write_rds(mS1b, "objects/mS1b.rds")
+
+} else {
+  
+  mS1b <- read_rds("objects/mS1b.rds")
+
+}
 
 # Parameter summary ----
 
@@ -100,7 +114,7 @@ parsS1b <- c("b_logaB_Intercept", "b_logaD_Intercept",
 mS1b_tab <- mS1b$fit %>%
   tidy(pars = parsS1b, rhat = TRUE, ess = TRUE, conf.int = TRUE) %>%
   left_join(parsS1b %>%
-              as.data.frame(mS1a$fit, pars = .) %>%
+              as.data.frame(mS1b$fit, pars = .) %>%
               summarize_all(get_p) %>%
               gather(term, p), by = "term")
 
@@ -148,4 +162,4 @@ fS1b <- ggplot(figS1b, aes(x = estimate.logaB, y = estimate.logaD,
 
 plot_grid(fS1a, fS1b, nrow = 1, align = "hv", labels = c("A", "B"), axis = "t")
 
-ggsave("figures/figS1.eps", w = 6.5, h = 3.25)
+ggsave("figures/figS1.pdf", w = 6.5, h = 3.25)

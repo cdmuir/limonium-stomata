@@ -35,17 +35,23 @@ stomata$treatment %<>% factor(levels = c("WW", "WD"))
 
 # Fit models ----
 
-# m2a <- brm(log(gs) ~ gsmax * treatment + (1 | spp), 
-#            data = mutate_if(stomata, ~ inherits(.x, "units"), drop_units),
-#            cores = 4)
-# m2b <- brm(log(gs) ~ treatment + gsmax + (1 | spp), 
-#            data = mutate_if(stomata, ~ inherits(.x, "units"), drop_units),
-#            cores = 4)
-# write_rds(m2a, "objects/m2a.rds")
-# write_rds(m2b, "objects/m2b.rds")
+if (run) {
+  
+  m2a <- brm(log(gs) ~ gsmax * treatment + (1 | spp), 
+             data = mutate_if(stomata, ~ inherits(.x, "units"), drop_units),
+             cores = 4, seed = 862095944)
+  m2b <- brm(log(gs) ~ treatment + gsmax + (1 | spp), 
+             data = mutate_if(stomata, ~ inherits(.x, "units"), drop_units),
+             cores = 4, seed = 871157655)
+  write_rds(m2a, "objects/m2a.rds")
+  write_rds(m2b, "objects/m2b.rds")
+  
+} else {
+  
+  m2a <- read_rds("objects/m2a.rds")
+  m2b <- read_rds("objects/m2b.rds")
 
-m2a <- read_rds("objects/m2a.rds")
-m2b <- read_rds("objects/m2b.rds")
+}
 
 # Parameter summary ----
 
@@ -60,12 +66,11 @@ m2_tab <- m2b$fit %>%
 
 write_rds(m2_tab, "objects/m2_tab.rds")
 
-
-# Figure 4 ----
+# Figure 3 ----
 
 r2 <- bayes_R2(m2b)
 
-fig4 <- stomata %>%
+fig3 <- stomata %>%
   filter(!is.na(gs), !is.na(gsmax)) %>%
   select(spp, Treatment = treatment, gs, gsmax) %>%
   mutate_if(function(.x) inherits(.x, "units"), drop_units)
@@ -73,7 +78,7 @@ fig4 <- stomata %>%
 ex <- m2b %>%
   as.data.frame(pars = c("b_Intercept", "b_treatmentWD", "b_gsmax")) %>%
   mutate(iter = 1:nrow(.)) %>%
-  crossing(x = seq(min(fig4$gsmax), max(fig4$gsmax), length.out = 1e2),
+  crossing(x = seq(min(fig3$gsmax), max(fig3$gsmax), length.out = 1e2),
            drought = c(0, 1)) %>%
   mutate(
     mu_gs = exp(b_Intercept + b_gsmax * x + b_treatmentWD * drought)
@@ -86,7 +91,7 @@ ex <- m2b %>%
   ) %>%
   mutate(Treatment = ifelse(drought == 0, "WW", "WD"))
 
-f4 <- ggplot(fig4, aes(x = gsmax, y = gs, fill = Treatment)) +  
+f3 <- ggplot(fig3, aes(x = gsmax, y = gs, fill = Treatment)) +  
   scale_x_continuous(limits = c(1, 3)) +
   scale_y_log10() +
   scale_fill_manual(values = c("black", "white")) +
@@ -102,10 +107,12 @@ f4 <- ggplot(fig4, aes(x = gsmax, y = gs, fill = Treatment)) +
   ) +
   geom_ribbon(data = filter(ex, Treatment == "WW"), 
               mapping = aes(x = x, ymin = lci_gs, ymax = uci_gs), 
-              inherit.aes = FALSE, fill = "grey50", color = "grey25") +
+              inherit.aes = FALSE, fill = "grey50", color = "grey25",
+              alpha = 0.5) +
   geom_ribbon(data = filter(ex, Treatment == "WD"), 
               mapping = aes(x = x, ymin = lci_gs, ymax = uci_gs), 
-              inherit.aes = FALSE, fill = "grey50", color = "grey25") +
+              inherit.aes = FALSE, fill = "grey50", color = "grey25",
+              alpha = 0.5) +
   geom_line(data = filter(ex, Treatment == "WW"), 
             mapping = aes(x = x, y = est_gs), 
             inherit.aes = FALSE, size = 1.2) +
@@ -114,7 +121,7 @@ f4 <- ggplot(fig4, aes(x = gsmax, y = gs, fill = Treatment)) +
             size = 1.2, inherit.aes = FALSE, linetype = "dashed") +
   geom_point(size = 2, shape = 21) +
   xlab(expression(paste("Anatomical ", italic(g)[smax], " [mol ", H[2], "O ", m^-2~s^-1, "]"))) +
-  ylab(expression(paste(italic(g)[s], " [mol ", H[2], "O ", m^-2~s^-1, "]"))) +
+  ylab(expression(paste(italic(g)[s], " [mol ", H[2], "O ", m^-2~s^-1, "], log-scale"))) +
   theme_cdm() +
   theme(
     legend.position = "top",
@@ -122,4 +129,4 @@ f4 <- ggplot(fig4, aes(x = gsmax, y = gs, fill = Treatment)) +
   ) +
   NULL
 
-ggsave("figures/fig4.eps", width = 4, height = 4)
+ggsave("figures/fig3.pdf", width = 4, height = 4)

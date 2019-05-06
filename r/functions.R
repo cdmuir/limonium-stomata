@@ -15,6 +15,7 @@ theme_cdm <- function(base_size = 10, base_family = "") {
       legend.text = element_text(size = rel(1)),
       legend.title = element_text(size = rel(1)),
       panel.grid.minor = element_blank(), 
+      strip.text = element_text(size = rel(1)),
       aspect.ratio = 1,
       complete = TRUE
     )

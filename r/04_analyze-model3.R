@@ -18,21 +18,31 @@ stomata$treatment %<>% factor(levels = c("WW", "WD"))
 
 # Fit model ----
 
-# m3a <- brm(cbind(sd, sp) ~ la * treatment + (1 | spp), 
-#            data = stomata, cores = 4)
-# m3b <- brm(cbind(sd, sp) ~ la + la : treatment + (1 | spp), 
-#            data = stomata, cores = 4)
-# m3c <- brm(cbind(sd, sp) ~ la + (1 | spp), data = stomata, cores = 4)
-# 
-# write_rds(m3a, "objects/m3a.rds")
-# write_rds(m3b, "objects/m3b.rds")
-# write_rds(m3c, "objects/m3c.rds")
+if (run) {
+  
+  m3a <- brm(mvbind(sd, sp) ~ la * treatment + (1 | spp), 
+             data = stomata, cores = 4, seed = 812890523) %>%
+    add_criterion("loo", reloo = TRUE)
+  m3b <- brm(mvbind(sd, sp) ~ la + la : treatment + (1 | spp), 
+             data = stomata, cores = 4, seed = 393331214) %>%
+    add_criterion("loo", reloo = TRUE)
+  m3c <- brm(mvbind(sd, sp) ~ la + (1 | spp), 
+             data = stomata, cores = 4, seed = 215291214) %>%
+    add_criterion("loo", reloo = TRUE)
 
-# m3a <- read_rds("objects/m3a.rds")
-# m3b <- read_rds("objects/m3b.rds")
-m3c <- read_rds("objects/m3c.rds")
+  write_rds(m3a, "objects/m3a.rds")
+  write_rds(m3b, "objects/m3b.rds")
+  write_rds(m3c, "objects/m3c.rds")
 
-# WAIC(m3a, m3b, m3c)
+} else {
+  
+  m3a <- read_rds("objects/m3a.rds")
+  m3b <- read_rds("objects/m3b.rds")
+  m3c <- read_rds("objects/m3c.rds")
+
+}
+
+loo_compare(m3a, m3b, m3c)
 
 # Parameter summary ----
 
@@ -48,7 +58,7 @@ m3_tab <- m3c$fit %>%
 
 write_rds(m3_tab, "objects/m3_tab.rds")
 
-# Figure 5 ----
+# Figure 4 ----
 
 ex <- m3c %>%
   as.data.frame(pars = pars3) %>%
@@ -69,7 +79,7 @@ ex <- m3c %>%
     uci_sp = hdi(mu_sp)[1, 2]
   )
 
-fig5 <- stomata %>%
+fig4 <- stomata %>%
   filter(!is.na(la), !is.na(sd), !is.na(sp)) %>%
   select(spp, treatment, la, sd, sp) %>%
   group_by(spp, treatment) %>%
@@ -94,7 +104,7 @@ r2 <- bayes_R2(m3c)
 
 ## Panel A ----
 
-f5a <- ggplot(fig5, aes(
+f4a <- ggplot(fig4, aes(
   x = la, y = sd,
   xmin = la - se_la, xmax = la + se_la,
   ymin = sd - se_sd, ymax = sd + se_sd,
@@ -110,11 +120,11 @@ f5a <- ggplot(fig5, aes(
   geom_errorbarh() +
   geom_point(size = 3, shape =21) +
   annotate(
-    "text", max(fig5$la, na.rm = TRUE), max(fig5$sd, na.rm = TRUE), 
+    "text", max(fig4$la, na.rm = TRUE), max(fig4$sd, na.rm = TRUE), 
     hjust = 0.25, vjust = 0, parse = TRUE,
     label = glue("atop(paste(italic(R) ^ 2, \" = {r2}\"), paste(italic(P), \" = {p}\"))",
                  r2 = round(r2["R2sd", "Estimate"], 2), 
-                 p = signif(m3_tab$p[m3_tab$term == "b_sd_la"], 3))
+                 p = signif(m3_tab$p[m3_tab$term == "b_sd_la"], 1))
   ) +
   xlab(expression(paste("Leaf area [m", m ^ 2, "]"))) +
   ylab(expression(paste("Stomatal density [m", m^-2, "]"))) +
@@ -127,7 +137,7 @@ f5a <- ggplot(fig5, aes(
 
 ## Panel B ----
 
-f5b <- ggplot(fig5, aes(
+f4b <- ggplot(fig4, aes(
   x = la, y = sp,
   xmin = la - se_la, xmax = la + se_la,
   ymin = sp - se_sp, ymax = sp + se_sp,
@@ -144,7 +154,7 @@ f5b <- ggplot(fig5, aes(
   geom_errorbarh() +
   geom_point(size = 3, shape =21  ) +
   annotate(
-    "text", max(fig5$la, na.rm = TRUE), 32, 
+    "text", max(fig4$la, na.rm = TRUE), 32, 
     hjust = 0.25, vjust = 0.15, parse = TRUE,
     label = glue("atop(paste(italic(R) ^ 2, \" = {r2}\"), paste(italic(P), \" = {p}\"))",
                  r2 = round(r2["R2sp", "Estimate"], 2), 
@@ -159,7 +169,6 @@ f5b <- ggplot(fig5, aes(
   ) +
   NULL
 
-plot_grid(f5a, f5b, ncol = 1, align = "hv", labels = c("A", "B"), axis = "t")
+plot_grid(f4a, f4b, ncol = 1, align = "hv", labels = c("A", "B"), axis = "t")
 
-ggsave("figures/fig5.eps", w = 3.25, h = 6.5)
-
+ggsave("figures/fig4.pdf", w = 3.25, h = 6.5)

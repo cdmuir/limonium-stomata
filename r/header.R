@@ -1,4 +1,4 @@
-rm(list = ls())
+rm(list = setdiff(ls(), "run"))
 
 library(broom)
 library(brms)
