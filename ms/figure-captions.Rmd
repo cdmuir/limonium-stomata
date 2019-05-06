@@ -1,0 +1,17 @@
+---
+title: 'Figure captions'
+output:
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Figure 1** Conceptual overview of hypotheses and predictions. Because leaf expansion spaces out stomata, larger leaves lead to lower stomatal density but the effect on stomatal pore length is unclear. Together, stomatal density and pore length determine the anatomical maximum stomatal conductance $g_\textrm{smax}$ which we predict is positively correlated with operational stomatal conductance $g_\textrm{s}$. Lower stomatal conductance reduces the $\textrm{CO}_2$ concentration in chloroplasts, selecting for greater specificity (higher $S_\textrm{c/o}$) but reduced carboxylation activity ($k^\textrm{cat}_\textrm{c}$) due to a tradeoff between specificity and rate.
+
+**Figure 2** Greater anatomical stomatal conductance ($g_\textrm{smsax}$) is associated with A) greater Rubisco carboxylase activity ($k^\textrm{cat}_\textrm{c}$) but B) reduced $\textrm{CO}_2$ specificity ($S_\textrm{c/o}$). Because anatomical responses to water treatment varied among species (see Results), we compared the species-level relationship between $g_\textrm{smsax}$ and biochemical traits in well-watered (WW, left facets, black circles) and water-deficit (WD, right facets, white circles) treatments. The relationships are similar, but somewhat stronger under WD than WW (higher $R^2$ and lower $P$-values). Solid lines represent the median relationship between traits and gray polygons are the 95% highest posterior density (HPD) interval from the posterior distribution. Points represent the mean value per species and bars represent the standard errors.
+
+**Figure 3** Anatomical maximum stomatal conductance ($g_\textrm{smsax}$, $x$-axis) predicts operational stomatal conductance ($g_\textrm{s}$, $y$-axis, log-transformed) under both drought (white circles, dashed line) and control (black circles, solid line) treatments. anatomy determines the maximum conductance to $\textrm{CO}_2$ and water vapor ($g_\textrm{smsax}$). As expected, species have lower stomatal conductance under the drought treatment, but the slope was not significantly different between treatments. Each point represents an individual plant from one of the 10 *Limonium* species. Gray polygons are the 95% highest posterior density (HPD) interval from the posterior distribution.
+
+**Figure 4** Larger leaves (greater leaf area) are A) associated with greater stomatal density but B) were not correlated with stomatal pore length in both drought (white points) and control (black points) treatments. Solid lines represent the median relationship between traits and gray polygons are the 95% highest posterior density (HPD) interval from the posterior distribution. Points represent the mean value per species and bars represent the standard errors.
