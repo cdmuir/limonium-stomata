@@ -1,6 +1,6 @@
 # limonium-stomata
 
-Stomatal anatomy coordinates leaf size with Rubisco kinetics in the Balearic *Limonium*. *In review*.
+Stomatal anatomy coordinates leaf size with Rubisco kinetics in the Balearic *Limonium*. Accepted at *AoB PLANTS*.
 
 This project was developed by Miquel À. Conesa, [Chris Muir](www.chrisdmuir.com), Arántzazu Molins, and Jeroni Galmés.
 
